@@ -2,51 +2,43 @@ import requests
 import pandas as pd
 from icalendar import Calendar, Event
 from datetime import datetime
-import os
 
 def main():
     url = "https://www.wantgoo.com/stock/calendar/dividend-right"
+    # 模擬瀏覽器，避免被網站封鎖
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Referer": "https://www.wantgoo.com/"
     }
 
     try:
-        # 爬取網頁表格
         response = requests.get(url, headers=headers)
-        response.encoding = 'utf-8'
-        
-        # 玩股網表格通常在 class="table" 中
+        # 使用 pandas 讀取表格，指定編碼為 utf-8
         dfs = pd.read_html(response.text)
-        df = dfs[0] 
+        df = dfs[0]
 
-        # 建立 iCal 物件
         cal = Calendar()
-        cal.add('prodid', '-//Custom Stock Calendar//TW//')
-        cal.add('version', '2.0')
-        cal.add('X-WR-CALNAME', '台股除權息行事曆')
+        cal.add('X-WR-CALNAME', '台股除權息日曆') # 給日曆起個名字
 
         for _, row in df.iterrows():
             try:
-                # 假設欄位名：日期, 股票, 現金股利, 股票股利 (需依實際網頁標題微調)
-                date_str = row['日期'].replace('-', '/') # 標準化日期格式
-                date_obj = datetime.strptime(date_str, '%Y/%m/%d')
-                
+                # 玩股網目前的欄位名稱通常是：'除權息日期', '名稱', '現金股利', '股票股利'
+                date_str = str(row['除權息日期']).replace('-', '/')
                 event = Event()
-                event.add('summary', f"除權息: {row['股票']}")
-                event.add('dtstart', date_obj.date())
-                event.add('dtend', date_obj.date())
-                event.add('description', f"現金: {row['現金股利']} / 股票: {row['股票股利']}")
-                
+                event.add('summary', f"除權息: {row['名稱']}")
+                event.add('dtstart', datetime.strptime(date_str, '%Y/%m/%d').date())
+                event.add('dtend', datetime.strptime(date_str, '%Y/%m/%d').date())
+                event.add('description', f"現金: {row['現金股利']} | 股票: {row['股票股利']}")
                 cal.add_component(event)
             except:
                 continue
 
         with open('web.ics', 'wb') as f:
             f.write(cal.to_ical())
-        print("Success: web.ics generated.")
+        print("🎉 web.ics 已成功更新！")
 
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"❌ 發生錯誤: {e}")
 
 if __name__ == "__main__":
     main()
