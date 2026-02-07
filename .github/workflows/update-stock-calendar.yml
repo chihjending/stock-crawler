@@ -1,0 +1,33 @@
+name: 每日更新除權息日曆
+
+on:
+  schedule:
+    - cron: '0 21 * * *' # 每天台灣時間早上 5 點執行 (UTC 21:00)
+  workflow_dispatch:      # 允許你手動按按鈕執行
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 複製儲存庫內容
+        uses: actions/checkout@v3
+
+      - name: 設定 Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: 安裝必要套件
+        run: |
+          pip install requests pandas beautifulsoup4 icalendar lxml
+
+      - name: 執行爬蟲程式
+        run: python crawler.py
+
+      - name: 將更新後的檔案存回 GitHub
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add web.ics
+          git commit -m "自動更新日曆: $(date)" || exit 0
+          git push
