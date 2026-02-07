@@ -22,7 +22,7 @@ jobs:
           pip install requests pandas beautifulsoup4 icalendar lxml
 
       - name: 執行爬蟲程式
-        run: python stock-calendar.py
+        run: python stock-Calendar.py
 
       - name: 將更新後的檔案存回 GitHub
         run: |
